@@ -358,6 +358,7 @@ var defaultOptions = {
     inversionAttempts: "attemptBoth",
 };
 function jsQR(data, width, height, providedOptions) {
+    // 呼ばれてる@1
     if (providedOptions === void 0) { providedOptions = {}; }
     var options = defaultOptions;
     Object.keys(options || {}).forEach(function (opt) {
@@ -404,6 +405,7 @@ var Matrix = /** @class */ (function () {
     return Matrix;
 }());
 function binarize(data, width, height, returnInverted) {
+    // 呼ばれた@2
     if (data.length !== width * height * 4) {
         throw new Error("Malformed data passed to binarizer.");
     }
@@ -590,6 +592,7 @@ function buildFunctionPatternMask(version) {
     return matrix;
 }
 function readCodewords(matrix, version, formatInfo) {
+    // コードワード（？）
     var dataMask = DATA_MASKS[formatInfo.dataMask];
     var dimension = matrix.height;
     var functionPatternMask = buildFunctionPatternMask(version);
@@ -714,6 +717,7 @@ function readFormatInformation(matrix) {
     return null;
 }
 function getDataBlocks(codewords, version, ecLevel) {
+    // バイトから変換
     var ecInfo = version.errorCorrectionLevels[ecLevel];
     var dataBlocks = [];
     var totalCodewords = 0;
@@ -756,15 +760,24 @@ function getDataBlocks(codewords, version, ecLevel) {
     return dataBlocks;
 }
 function decodeMatrix(matrix) {
+    // ここで読み取りを行っている（っぽい）
+
+    // バージョン
     var version = readVersion(matrix);
     if (!version) {
         return null;
     }
+
+    // QRコードのフォーマット（形式？）
     var formatInfo = readFormatInformation(matrix);
     if (!formatInfo) {
         return null;
     }
+
+    // コード語
     var codewords = readCodewords(matrix, version, formatInfo);
+
+    // データブロック
     var dataBlocks = getDataBlocks(codewords, version, formatInfo.errorCorrectionLevel);
     if (!dataBlocks) {
         return null;
@@ -783,6 +796,7 @@ function decodeMatrix(matrix) {
             resultBytes[resultIndex++] = correctedBytes[i];
         }
     }
+
     try {
         return decodeData_1.decode(resultBytes, version.versionNumber);
     }
@@ -931,6 +945,7 @@ function decodeKanji(stream, size) {
     var characterCountSize = [8, 10, 12][size];
     var length = stream.readBits(characterCountSize);
     for (var i = 0; i < length; i++) {
+        console.log(text)
         var k = stream.readBits(13);
         var c = (Math.floor(k / 0xC0) << 8) | (k % 0xC0);
         if (c < 0x1F00) {
@@ -953,12 +968,12 @@ function decode(data, version) {
         bytes: [],
         chunks: [],
     };
+    var terminator_count = 0
     while (stream.available() >= 4) {
         var mode = stream.readBits(4);
-        if (mode === ModeByte.Terminator) {
+        if (mode === ModeByte.Terminator && terminator_count++ === 1) {
             return result;
-        }
-        else if (mode === ModeByte.ECI) {
+        } else if (mode === ModeByte.ECI) {
             if (stream.readBits(1) === 0) {
                 result.chunks.push({
                     type: Mode.ECI,
